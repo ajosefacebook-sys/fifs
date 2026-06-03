@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Staff {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  phone           String
+  role            String
+  status          String   @default("on-site")
+  performanceScore Int     @default(50)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  attendance   Attendance[]
+  tasks        Task[]       @relation("TaskAssignee")
+  disciplines  Discipline[]
+}
+
+model Attendance {
+  id       String   @id @default(cuid())
+  staffId  String
+  date     DateTime
+  checkIn  String?
+  checkOut String?
+  status   String   @default("present")
+
+  staff Staff @relation(fields: [staffId], references: [id])
+}
+
+model Discipline {
+  id          String   @id @default(cuid())
+  staffId     String
+  date        DateTime
+  type        String
+  description String
+  issuedBy    String
+
+  staff Staff @relation(fields: [staffId], references: [id])
+}
+
+model Vendor {
+  id             String   @id @default(cuid())
+  companyName    String
+  trade          String
+  rating         Float    @default(0)
+  slaScore       Int      @default(0)
+  contactPerson  String
+  phone          String
+  email          String
+  responseTimeAvg Int     @default(0)
+  slaCompliance  Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  jobs VendorJob[]
+}
+
+model VendorJob {
+  id          String   @id @default(cuid())
+  vendorId    String
+  taskId      String?
+  description String
+  date        DateTime
+  rating      Int      @default(0)
+  cost        Float    @default(0)
+
+  vendor Vendor @relation(fields: [vendorId], references: [id])
+}
+
+model Task {
+  id           String   @id @default(cuid())
+  title        String
+  description  String
+  category     String
+  priority     String
+  status       String   @default("open")
+  location     String?
+  assignedTo   String?
+  createdBy    String
+  dueDate      DateTime?
+  isVerified   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assignedStaff Staff?  @relation("TaskAssignee", fields: [assignedTo], references: [id])
+  messages      ChatMessage[]
+  history       TaskHistory[]
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  taskId    String
+  senderId  String
+  senderName String
+  content   String
+  timestamp DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id])
+}
+
+model TaskHistory {
+  id          String   @id @default(cuid())
+  taskId      String
+  action      String
+  performedBy String
+  timestamp   DateTime @default(now())
+  details     String?
+
+  task Task @relation(fields: [taskId], references: [id])
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  type        String
+  status      String   @default("planning")
+  startDate   DateTime
+  endDate     DateTime
+  budget      Float
+  budgetUsed  Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tasks      ProjectTask[]
+  activity   ActivityLog[]
+  members    ProjectMember[]
+}
+
+model ProjectTask {
+  id          String    @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  assignedTo  String?
+  status      String    @default("pending")
+  dueDate     DateTime?
+  completedAt DateTime?
+
+  project Project @relation(fields: [projectId], references: [id])
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  projectId   String
+  action      String
+  performedBy String
+  timestamp   DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id])
+}
+
+model ProjectMember {
+  id        String @id @default(cuid())
+  projectId String
+  staffId   String
+
+  project Project @relation(fields: [projectId], references: [id])
+}
+
+model Checklist {
+  id        String   @id @default(cuid())
+  type      String
+  date      DateTime
+  completed Boolean  @default(false)
+  submittedAt DateTime?
+  createdAt DateTime @default(now())
+
+  items ChecklistItem[]
+}
+
+model ChecklistItem {
+  id          String   @id @default(cuid())
+  checklistId String
+  label       String
+  status      String   @default("ok")
+  note        String?
+  photoUrl    String?
+  updatedAt   DateTime @updatedAt
+
+  checklist Checklist @relation(fields: [checklistId], references: [id])
+}
+
+model Alert {
+  id             String   @id @default(cuid())
+  taskName       String
+  taskId         String?
+  assignedPerson String
+  scheduledTime  DateTime
+  status         String   @default("pending")
+  escalated      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  acknowledgedAt DateTime?
+}
